@@ -3,16 +3,16 @@ package com.example.lawrenjuip.tinkering.PhotoModel;
 import com.google.gson.annotations.SerializedName;
 
 public class Photo {
-    private int id;
+    private String id;
     @SerializedName("url_s") private String urlSmall;
     private String owner;
     private String title;
 
-    public int getId() {
+    public String getId() {
         return id;
     }
 
-    public void setId(int id) {
+    public void setId(String id) {
         this.id = id;
     }
 
