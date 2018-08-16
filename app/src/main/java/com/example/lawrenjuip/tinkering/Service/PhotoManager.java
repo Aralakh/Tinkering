@@ -1,4 +1,4 @@
-package com.example.lawrenjuip.tinkering;
+package com.example.lawrenjuip.tinkering.Service;
 
 import com.example.lawrenjuip.tinkering.PhotoModel.Photo;
 
