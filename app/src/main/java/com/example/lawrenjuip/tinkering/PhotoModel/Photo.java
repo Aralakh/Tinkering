@@ -5,6 +5,7 @@ import com.google.gson.annotations.SerializedName;
 public class Photo {
     private String id;
     @SerializedName("url_s") private String urlSmall;
+    @SerializedName("url_t") private String urlThumbnail;
     private String owner;
     private String title;
 
@@ -24,6 +25,9 @@ public class Photo {
         this.urlSmall = urlSmall;
     }
 
+    public String getUrlThumbnail() { return urlThumbnail; }
+
+    public void setUrlThumbnail(String urlThumbnail) { this.urlThumbnail = urlThumbnail; }
     public String getOwner() {
         return owner;
     }

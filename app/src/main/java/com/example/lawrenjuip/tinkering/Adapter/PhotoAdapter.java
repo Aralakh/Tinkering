@@ -1,6 +1,8 @@
 package com.example.lawrenjuip.tinkering.Adapter;
 
 import android.content.Context;
+import android.content.res.AssetManager;
+import android.graphics.drawable.Drawable;
 import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -9,12 +11,16 @@ import android.widget.ImageView;
 
 import com.example.lawrenjuip.tinkering.PhotoModel.Photo;
 import com.example.lawrenjuip.tinkering.R;
+import com.squareup.picasso.Picasso;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.List;
 
 public class PhotoAdapter extends RecyclerView.Adapter<PhotoAdapter.PhotoHolder>{
     private List<Photo> mPhotoList;
     private Context mContext;
+    private Drawable mPlaceholder;
 
     public PhotoAdapter(List<Photo> photos, Context context){
         mPhotoList = photos;
@@ -24,18 +30,13 @@ public class PhotoAdapter extends RecyclerView.Adapter<PhotoAdapter.PhotoHolder>
 
     public class PhotoHolder extends RecyclerView.ViewHolder implements View.OnClickListener{
         public final View mView;
-        private ImageView mPhotoImageView;
-        private Photo mPhoto;
+        public ImageView mPhotoImageView;
 
         public PhotoHolder(View itemView){
             super(itemView);
             mView = itemView;
             mPhotoImageView = mView.findViewById(R.id.photo_item_view);
             itemView.setOnClickListener(this);
-        }
-
-        public void bindPhoto(Photo photo){
-            mPhoto = photo;
         }
 
         @Override
@@ -54,13 +55,41 @@ public class PhotoAdapter extends RecyclerView.Adapter<PhotoAdapter.PhotoHolder>
     @Override
     public void onBindViewHolder(PhotoHolder photoHolder, int position){
         Photo photo = mPhotoList.get(position);
-        photoHolder.bindPhoto(photo);
-        //Picasso stuff probably goes here?
+        mPlaceholder = createPlaceholder();
+
+        Picasso.get()
+                .load(photo.getUrlThumbnail())
+                .error(R.drawable.ic_image_error)
+                .placeholder(mPlaceholder)
+                .into(photoHolder.mPhotoImageView);
 
     }
 
     @Override
     public int getItemCount(){
         return mPhotoList.size();
+    }
+
+    private Drawable createPlaceholder(){
+        AssetManager assetManager = mContext.getAssets();
+        InputStream inputStream = null;
+        Drawable placeholder = null;
+
+        try{
+            inputStream = assetManager.open("portrait_placeholder.png");
+            placeholder = Drawable.createFromStream(inputStream, null);
+        }catch(IOException e){
+            e.printStackTrace();
+        }finally {
+            if(inputStream == null){
+                try{
+                    inputStream.close();
+                }catch (IOException e){
+                    e.printStackTrace();
+                }
+            }
+        }
+
+        return placeholder;
     }
 }
