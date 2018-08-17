@@ -67,7 +67,7 @@ public class PhotoAdapter extends RecyclerView.Adapter<PhotoAdapter.PhotoHolder>
 
     @Override
     public int getItemCount(){
-        return mPhotoList.size();
+        return mPhotoList == null ? 0 : mPhotoList.size();
     }
 
     private Drawable createPlaceholder(){
@@ -92,4 +92,21 @@ public class PhotoAdapter extends RecyclerView.Adapter<PhotoAdapter.PhotoHolder>
 
         return placeholder;
     }
+
+    public void add(Photo photo){
+        mPhotoList.add(photo);
+        notifyItemInserted(mPhotoList.size() - 1);
+    }
+
+    public void addAll(List<Photo> photoList){
+        for(Photo photo : photoList){
+            add(photo);
+        }
+    }
+
+    public boolean isEmpty(){
+        return getItemCount() == 0;
+    }
+
+
 }

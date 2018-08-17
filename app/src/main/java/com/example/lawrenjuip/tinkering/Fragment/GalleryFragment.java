@@ -12,6 +12,7 @@ import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
 import android.widget.Toast;
 
+import com.example.lawrenjuip.tinkering.Adapter.PaginationScrollListener;
 import com.example.lawrenjuip.tinkering.PhotoModel.Photo;
 import com.example.lawrenjuip.tinkering.Adapter.PhotoAdapter;
 import com.example.lawrenjuip.tinkering.PhotoModel.PhotoQueryResponse;
@@ -26,18 +27,18 @@ import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 
-import static com.example.lawrenjuip.tinkering.Service.PhotoInterface.API_FORMAT;
-import static com.example.lawrenjuip.tinkering.Service.PhotoInterface.API_KEY;
 import static com.example.lawrenjuip.tinkering.Service.PhotoInterface.IMAGE_URL_FORMAT;
-import static com.example.lawrenjuip.tinkering.Service.PhotoInterface.NO_JSON_CALLBACK;
 import static com.example.lawrenjuip.tinkering.Service.PhotoInterface.NUM_OF_PHOTOS_PER_PAGE;
 
 public class GalleryFragment extends Fragment {
-    int mCurrentPage = 1;
     private RecyclerView mPhotoRecyclerView;
     private GridLayoutManager mPhotoGridLayoutManager;
     private PhotoAdapter mPhotoAdapter;
     private List<Photo> mPhotolist = new ArrayList<>();
+    private int mCurrentPage = 1;
+    private boolean mIsLoading = false;
+    private boolean mIsLastPage = false;
+    private int mMaxPages = 100;
 
     public static GalleryFragment newInstance(){
         return new GalleryFragment();
@@ -46,33 +47,7 @@ public class GalleryFragment extends Fragment {
     @Override
     public void onCreate(Bundle savedInstanceState){
         super.onCreate(savedInstanceState);
-
-        //have to add a callback so the ui will be updated when onResponse() is called.
-        PhotoInterface photoInterface = FlickrService.createService(PhotoInterface.class);
-        Call<PhotoQueryResponse> call = photoInterface.getAsyncPhotoQueryResponse(PhotoInterface.API_METHOD, API_KEY, API_FORMAT, NO_JSON_CALLBACK, IMAGE_URL_FORMAT, NUM_OF_PHOTOS_PER_PAGE, mCurrentPage);
-        call.enqueue(new Callback<PhotoQueryResponse>() {
-            @Override
-            public void onResponse(Call<PhotoQueryResponse> call, Response<PhotoQueryResponse> response) {
-                Log.d("GalleryFragment","Response code: " + response.code());
-                List<Photo> resultList = response.body().getPhotos().getPhotolist();
-
-                if(mPhotolist == null || mPhotolist.size() == 0){
-                    scaleGridLayout();
-                    mPhotolist = resultList;
-                    setRecyclerViewAdapter(mPhotolist);
-                }else{
-                    int prevSize = mPhotolist.size();
-                    mPhotolist.addAll(resultList);
-                    mPhotoAdapter.notifyItemRangeChanged(prevSize, mPhotolist.size());
-                }
-
-            }
-
-            @Override
-            public void onFailure(Call<PhotoQueryResponse> call, Throwable t) {
-                Toast.makeText(getActivity(), "Failed to retrieve photos", Toast.LENGTH_LONG).show();
-            }
-        });
+        callAPI();
     }
 
     @Override
@@ -82,6 +57,34 @@ public class GalleryFragment extends Fragment {
         mPhotoRecyclerView = galleryView.findViewById(R.id.photo_recycler_view);
         mPhotoGridLayoutManager = new GridLayoutManager(getActivity(), 3);
         mPhotoRecyclerView.setLayoutManager(mPhotoGridLayoutManager);
+
+        mPhotoRecyclerView.addOnScrollListener(new PaginationScrollListener(mPhotoGridLayoutManager) {
+            @Override
+            protected void loadMoreItems() {
+                mIsLoading = true;
+                mCurrentPage++;
+                if(mCurrentPage < mMaxPages){
+                    callAPI();
+                }else{
+                    mIsLastPage = true;
+                }
+            }
+
+            @Override
+            public int getTotalPageCount() {
+                return mMaxPages;
+            }
+
+            @Override
+            public boolean isLastPage() {
+                return mIsLastPage;
+            }
+
+            @Override
+            public boolean isLoading() {
+                return mIsLoading;
+            }
+        });
         return galleryView;
     }
 
@@ -100,6 +103,36 @@ public class GalleryFragment extends Fragment {
                 mPhotoGridLayoutManager = new GridLayoutManager(getActivity(), columnNumber);
                 mPhotoRecyclerView.setLayoutManager(mPhotoGridLayoutManager);
                 mPhotoRecyclerView.getViewTreeObserver().removeOnGlobalLayoutListener(this);
+            }
+        });
+    }
+
+    private void callAPI(){
+        //have to add a callback so the ui will be updated when onResponse() is called.
+        PhotoInterface photoInterface = FlickrService.createService(PhotoInterface.class);
+        Call<PhotoQueryResponse> call = photoInterface.getAsyncPhotoQueryResponse(IMAGE_URL_FORMAT, NUM_OF_PHOTOS_PER_PAGE, mCurrentPage);
+        call.enqueue(new Callback<PhotoQueryResponse>() {
+            @Override
+            public void onResponse(Call<PhotoQueryResponse> call, Response<PhotoQueryResponse> response) {
+                Log.d("GalleryFragment","Response code: " + response.code());
+                if(response.isSuccessful()){
+                    List<Photo> resultList = response.body().getPhotos().getPhotolist();
+                    if(mPhotolist == null || mPhotolist.size() == 0){
+                        scaleGridLayout();
+                        mPhotolist = resultList;
+                        setRecyclerViewAdapter(mPhotolist);
+                        mIsLoading = false;
+                    }else{
+                        int prevSize = mPhotolist.size();
+                        mPhotolist.addAll(resultList);
+                        mPhotoAdapter.notifyItemRangeChanged(prevSize, mPhotolist.size());
+                    }
+                }
+            }
+
+            @Override
+            public void onFailure(Call<PhotoQueryResponse> call, Throwable t) {
+                Toast.makeText(getActivity(), "Failed to retrieve photos", Toast.LENGTH_LONG).show();
             }
         });
     }
